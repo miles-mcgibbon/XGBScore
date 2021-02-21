@@ -54,7 +54,7 @@ def split_structure(filename, destination_path, make_dir):
         if make_dir:
             try:
                 os.mkdir(f'{destination_path}{pdb_code}')
-            except:
+            except FileExistsError:
                 pass
 
         # save the ligand
@@ -72,15 +72,18 @@ def split_structure(filename, destination_path, make_dir):
         io.set_structure(structure)
 
         if make_dir:
-            os.mkdir(f'{destination_path}{pdb_code}_LIGAND_ERROR')
+            try:
+                os.mkdir(f'{destination_path}{pdb_code}_LIGAND_ERROR')
+            except FileExistsError:
+                pass
 
         # save the protein
         io.save(f"{destination_path}{pdb_code}_LIGAND_ERROR/{pdb_code}_protein.pdb", protein_selector())
 
         ligand_errors = ligand_errors + 1
 
-complex_path = '/home/milesm/Dissertation/Data/Raw/Binding_MOAD/Extracted/BindingMOAD_2020/'
-destination_path = '/home/milesm/Dissertation/Data/Parsed/Binding_MOAD/'
+complex_path = ''
+destination_path = ''
 
 complexes = os.listdir(complex_path)
 
