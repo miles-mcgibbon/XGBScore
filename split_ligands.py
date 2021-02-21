@@ -6,7 +6,6 @@ from shutil import copyfile
 import requests
 
 
-
 def fetch_missing_decoys(foldername, ligands_path, decoys_filename):
 
     # define the url where the decoys mol2.gz file is stored
@@ -129,5 +128,8 @@ subfolders = os.listdir(ligands_path)
 
 with tqdm(total=len(subfolders)) as pbar:
     for folder in subfolders:
-        split_multimol_file(folder, ligands_path, actives_filename, decoys_filename, destination_path, True)
+        try:
+            split_multimol_file(folder, ligands_path, actives_filename, decoys_filename, destination_path, True)
+        except:
+            print(f'Unresolvable error with {folder}')
         pbar.update(1)
