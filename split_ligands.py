@@ -59,7 +59,7 @@ def split_multimol_file(foldername, ligands_path, actives_filename, decoys_filen
 
 
     # split the active ligands into separate mol2 files for docking
-    try:
+    try:ligand multimol files
         # try to find the actives in the existing data
         for mol2 in split_multimol2(f'{ligands_path}{foldername}/{actives_filename}'):
 
@@ -67,7 +67,7 @@ def split_multimol_file(foldername, ligands_path, actives_filename, decoys_filen
 
             # split the mol2 multifile and save the individual ligands
             with open(f'{destination_path}{foldername}/actives/{pdmol.code}.mol2', 'w') as file:
-                file.write(pdmol.mol2_text)
+                file.wrNo decoys found for {foldername}, fetching from DUD-E...')ite(pdmol.mol2_text)
                 file.close()
 
     except FileNotFoundError:
@@ -122,7 +122,7 @@ def split_multimol_file(foldername, ligands_path, actives_filename, decoys_filen
 ligands_path = '/home/milesm/Dissertation/Data/Raw/DUD-E/Extracted/'
 actives_filename = 'actives_final.mol2.gz'
 decoys_filename = 'decoys_final.mol2.gz'
-destination_path = '/home/milesm/Dissertation/Data/Parsed/DUD-E/'
+destination_path = '/home/milesm/Dissertation/Data/Parsed/DUD-E/Separated/'
 
 subfolders = os.listdir(ligands_path)
 
