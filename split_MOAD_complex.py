@@ -42,18 +42,19 @@ def split_structure(filename, destination_path, datafile, make_dir, ignore_pepti
     io = PDBIO()
     io.set_structure(structure)
 
+    pdb_directory_name = pdb_code + '_' + ext
+
     if make_dir:
         try:
-            os.mkdir(f'{destination_path}{pdb_code}')
+            os.mkdir(f'{destination_path}{pdb_directory_name}')
         except FileExistsError:
-            new_pdb_code = pdb_code + f'_{ext}'
-            os.mkdir(f'{destination_path}{new_pdb_code}')
             pass
 
     for id_codes in valid_ligand_ids:
-        io.save(f"{destination_path}{pdb_code}/{pdb_code}_ligand.pdb", ligand_selector(id_codes))
+        io.save(f"{destination_path}{pdb_directory_name}/{pdb_directory_name}_ligand.pdb", ligand_selector(id_codes))
 
-    io.save(f"{destination_path}{pdb_code}/{pdb_code}_protein.pdb", protein_selector())
+    io.save(f"{destination_path}{pdb_directory_name}/{pdb_directory_name}_protein.pdb", protein_selector())
+
 
 complex_path = '/home/milesm/Dissertation/Data/Raw/Binding_MOAD/Extracted/BindingMOAD_2020/'
 destination_path = '/home/milesm/Dissertation/Data/Parsed/Binding_MOAD/'
