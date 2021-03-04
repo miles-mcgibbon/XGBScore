@@ -1,6 +1,7 @@
 import os
 from Bio.PDB import *
 from tqdm import tqdm
+import pandas as pd
 from warnings import filterwarnings
 
 # ignore warnings about incomplete PDB structures, as Binding MOAD supplies truncated biounits
@@ -22,9 +23,12 @@ class protein_selector(Select):
         # select protein residues
         return True if residue.id[0] == " " else False
 
-def split_structure(filename, destination_path, make_dir):
+def split_structure(filename, destination_path, atom_threshold, make_dir, ignore_peptide):
 
     global ligand_errors
+
+    # list of hetatm ids to ignore
+    ignore_list = ['SO4','HOH']
 
     # define pdb code
     pdb_code = filename.split('.')[0].split('/')[filename.count('/')]
@@ -44,8 +48,8 @@ def split_structure(filename, destination_path, make_dir):
         ligand_atoms[len(lig.child_dict.values())] = lig.id
 
     try:
-        # get the longest ligand
-        active_ligand_id = ligand_atoms[max(ligand_atoms.keys())][0]
+        # get the longest ligands, excluding water and metal ions
+        active_ligand_ids = [ligand_atoms[key][0] for key in ligand_atoms.keys() if key > atom_threshold and ligand_atoms[key][0].replace('H_','') not in ignore_list]
 
         # set the structure for saving
         io = PDBIO()
@@ -57,42 +61,50 @@ def split_structure(filename, destination_path, make_dir):
             except FileExistsError:
                 pass
 
-        # save the ligand
-        for residue in structure.get_residues():
-            io.save(f"{destination_path}{pdb_code}/{pdb_code}_ligand.pdb", ligand_selector(residue, active_ligand_id))
+            # save the ligands
+            for residue in structure.get_residues():
+                if residue.id[0] in active_ligand_ids:
+                    io.save(f"{destination_path}{pdb_code}/{pdb_code}_ligand_{residue.id[0]}.pdb", ligand_selector(residue, residue.id[0]))
 
         # save the protein
         io.save(f"{destination_path}{pdb_code}/{pdb_code}_protein.pdb", protein_selector())
+        input('')
 
     except ValueError:
-        # add flag to directory if no ligand found
 
-        # set the structure for saving
-        io = PDBIO()
-        io.set_structure(structure)
+        if ignore_peptide:
+            pass
+        else:
+            # add flag to directory if no ligand found
 
-        if make_dir:
-            try:
-                os.mkdir(f'{destination_path}{pdb_code}_LIGAND_ERROR')
-            except FileExistsError:
-                pass
+            # set the structure for saving
+            io = PDBIO()
+            io.set_structure(structure)
 
-        # save the protein
-        io.save(f"{destination_path}{pdb_code}_LIGAND_ERROR/{pdb_code}_protein.pdb", protein_selector())
+            if make_dir:
+                try:
+                    os.mkdir(f'{destination_path}{pdb_code}_LIGAND_ERROR')
+                except FileExistsError:
+                    pass
+
+            # save the protein
+            io.save(f"{destination_path}{pdb_code}_LIGAND_ERROR/{pdb_code}_protein.pdb", protein_selector())
 
         ligand_errors = ligand_errors + 1
 
-complex_path = ''
-destination_path = ''
+complex_path = '/home/milesm/Dissertation/Data/Raw/Binding_MOAD/Extracted/BindingMOAD_2020/'
+destination_path = '/home/milesm/Dissertation/Data/Parsed/Binding_MOAD/'
 
 complexes = os.listdir(complex_path)
 
 ligand_errors = 0
 
+atom_threshold = 3
+
 with tqdm(total=len(complexes)) as pbar:
     for complex in complexes:
         filename = complex_path + complex
-        split_structure(filename, destination_path, True)
+        split_structure(filename, destination_path, atom_threshold, True, True)
         pbar.update(1)
 
-print(f'Splitting completed with {ligand_errors} ligand errors')
+print(f'Splitting completed with {ligand_errors} recorded ligand errors')
