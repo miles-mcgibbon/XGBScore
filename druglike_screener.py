@@ -10,6 +10,4 @@ def get_mw_from_file(filepath, file_format):
     filename = filename[len(filename) - 1]
     pdb_code = filename.split('.')[0]
     mol2 = next(oddt.toolkits.ob.readfile(file_format, filepath))
-    return mol2.molwt
-
-print(get_mw_from_file(example_crystal_ligand, 'mol2'))
+    return mol2.molwt, mol2.num_rotors
