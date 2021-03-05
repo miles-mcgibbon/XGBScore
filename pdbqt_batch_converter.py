@@ -72,8 +72,16 @@ def autodock_convert(folder_name, destination_path, prep_ligand_command, prep_pr
             print(f'FATAL PROBLEM WITH {folder_name}: Added to list and skipping...')
 
     print('Preparing protein...')
-    output = subprocess.check_output(f'{prep_protein_command} -r {receptor_filepath} -A hydrogens -o {destination_path}{folder_name}/{receptor_file}qt -U waters', shell=True)
-
+    try:
+        output = subprocess.check_output(f'{prep_protein_command} -r {receptor_filepath} -A hydrogens -o {destination_path}{folder_name}/{receptor_file}qt -U waters', shell=True)
+    except:
+        MOAD_fatal_error_list.append(folder_name)
+        if os.path.isfile('MOAD_fatal_error_list.txt'):
+            os.remove('MOAD_fatal_error_list.txt')
+        with open('MOAD_fatal_error_list.txt','a+') as error_list:
+            error_list.write(str(MOAD_fatal_error_list))
+            error_list.close()
+        print(f'FATAL PROBLEM WITH {folder_name}: Added to list and skipping...')
 
 def batch_convert_to_pdbqt(structure_folders, database_name, destination_path):
     if database_name == 'moad':
@@ -94,4 +102,4 @@ def batch_convert_to_pdbqt(structure_folders, database_name, destination_path):
                 autodock_convert(folder_name, destination_path, prep_ligand_command, prep_protein_command, ligand_filepath, ligand_file, receptor_filepath, receptor_file)
                 pbar.update(1)
 
-batch_convert_to_pdbqt(moad_structure_folders, 'moad', destination_path)
+batch_convert_to_pdbqt(moad_structure_folders[415:], 'moad', destination_path)
