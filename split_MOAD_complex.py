@@ -56,8 +56,6 @@ def split_structure(filename, destination_path, datafile, make_dir, filter_pepti
     pdb_code_data = datafile.loc[datafile.PDBCode.str.upper() == pdb_code.upper()]
     protein_parts = pdb_code_data.loc[pdb_code_data.Validity == 'Part of Protein']
     protein_part_ids = [part.split(':')[0].split(' ') for part in list(protein_parts.LigandID)]
-    if len(protein_part_ids) > 0:
-        print('Found protein parts to include!')
 
     # set the structure for saving
     io = PDBIO()
@@ -86,9 +84,11 @@ def split_structure(filename, destination_path, datafile, make_dir, filter_pepti
                 pass
         for id_codes in valid_ligand_ids:
             io.save(f"{destination_path}{pdb_directory_name}/{pdb_directory_name}_ligand.pdb", ligand_selector(id_codes))
-        for id_codes in protein_part_ids:
+        if len(protein_part_ids) == 0:
             io.save(f"{destination_path}{pdb_directory_name}/{pdb_directory_name}_protein.pdb", protein_selector(id_codes))
-        input('')
+        else:
+            for id_codes in protein_part_ids:
+                io.save(f"{destination_path}{pdb_directory_name}/{pdb_directory_name}_protein.pdb", protein_selector(id_codes))
 
 complex_path = '/home/milesm/Dissertation/Data/Raw/Binding_MOAD/Extracted/BindingMOAD_2020/'
 destination_path = '/home/milesm/Dissertation/Data/Parsed/Binding_MOAD/'
