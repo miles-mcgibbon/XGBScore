@@ -31,9 +31,8 @@ def get_stats_from_MOAD_file(filepath, file_format):
         coords_df = pd.DataFrame({'X': coords[:, 0], 'Y': coords[:, 1], 'Z': coords[:, 2]})
         diffs = list()
         for col in coords_df:
-            sorted_df = coords_df.sort_values(by=col)
-            sorted_df[f'd{col}'] = sorted_df[col].diff(-1).abs()
-            for diff in list(sorted_df[f'd{col}']):
+            coords_df[f'd{col}'] = coords_df[col].diff(-1).abs()
+            for diff in list(coords_df[f'd{col}']):
                 diffs.append(diff)
         bond_breaks = len([d for d in diffs if d > 2.5])
         mol_text = open(filepath, 'r').read()
@@ -101,8 +100,13 @@ with tqdm(total=len(pdb_structure_folders)) as pbar:
                 fails = fails + 1
         pbar.update(1)
 
-for filepath in pass_folders:
-    foldername = filepath.split('/')
-    foldername = foldername[len(foldername) - 1]
-    ligand_file = [filename for filename in os.listdir(filepath) if 'ligand.mol2' in filename or 'ligand.pdb' in filename][0]
-    shutil.copytree(filepath, f'{destination_path}{foldername}')
+print(passes)
+
+
+with tqdm(total=len(pass_folders)) as pbar:
+    for filepath in pass_folders:
+        foldername = filepath.split('/')
+        foldername = foldername[len(foldername) - 1]
+        ligand_file = [filename for filename in os.listdir(filepath) if 'ligand.mol2' in filename or 'ligand.pdb' in filename][0]
+        shutil.copytree(filepath, f'{destination_path}{foldername}')
+        pbar.update(1)
