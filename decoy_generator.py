@@ -1,37 +1,29 @@
 import oddt
+import os
+from tqdm import tqdm
 
-example_active = '/home/milesm/Dissertation/Data/Parsed/DUD-E/Separated/aa2ar/actives/CHEMBL190.pdbqt'
-destination_path = '/home/milesm/Dissertation/Data/Parsed/DUD-E/Separated/aa2ar/'
+pdbqt_druglike_files_path = '/home/milesm/Dissertation/Data/PDBQT/Non_redundant_druglike/'
 
-def convert_pdbqt_to_smiles(pdbqt_filepath, destination_path):
-    pdbqt_filename = pdbqt_filepath.split('/')
-    pdbqt_filename = pdbqt_filename[len(pdbqt_filename) - 1]
-    pdb_code = pdbqt_filename.split('.')[0]
-    pdbqt = next(oddt.toolkits.ob.readfile('pdbqt', pdbqt_filepath))
-    pdbqt.write('smi',f'{destination_path}{pdb_code}.txt', overwrite=True)
-    with open(f'{destination_path}{pdb_code}.txt', 'r') as smi_file:
-        smile = smi_file.read().split(destination_path)[0]
-    return (smile + ' ' + pdb_code)
+pdbqt_folders = [(pdbqt_druglike_files_path + folder) for folder in os.listdir(pdbqt_druglike_files_path)]
 
-def convert_pdb_to_smiles(pdb_filepath, destination_path):
-    pdb_filename = pdb_filepath.split('/')
-    pdb_filename = pdb_filename[len(pdb_filename) - 1]
-    pdb_code = pdb_filename.split('.')[0]
-    pdb = next(oddt.toolkits.ob.readfile('pdb', pdb_filepath))
-    pdb.write('smi',f'{destination_path}{pdb_code}.txt', overwrite=True)
-    with open(f'{destination_path}{pdb_code}.txt', 'r') as smi_file:
-        smile = smi_file.read().split(destination_path)[0]
-    return (smile + ' ' + pdb_code)
+smiles_file = '/home/milesm/Dissertation/Data/PDBQT/smiles_for_decoys.txt'
 
-def convert_mol2_to_smiles(mol2_filepath, destination_path):
-    mol2_filename = mol2_filepath.split('/')
-    mol2_filename = mol2_filename[len(mol2_filename) - 1]
-    pdb_code = mol2_filename.split('.')[0]
-    mol2 = next(oddt.toolkits.ob.readfile('mol2', mol2_filepath))
-    mol2.write('smi',f'{destination_path}{pdb_code}.txt', overwrite=True)
-    with open(f'{destination_path}{pdb_code}.txt', 'r') as smi_file:
-        smile = smi_file.read().split(destination_path)[0]
-    return (smile + ' ' + pdb_code)
+def convert_file_to_smiles(filepath, filetype):
+    filename = filepath.split('/')
+    filename = filename[len(filename) - 1]
+    pdb_code = filename.split('.')[0]
+    molecule = next(oddt.toolkits.ob.readfile(filetype, filepath))
+    return molecule.smiles + '    ' + pdb_code
 
-smile = convert_pdbqt_to_smiles(example_active, destination_path)
-print(smile)
+with tqdm(total=len(pdbqt_folders)) as pbar:
+    for filepath in pdbqt_folders:
+        foldername = filepath.split('/')
+        foldername = foldername[len(foldername) - 1]
+        ligand_file = [filename for filename in os.listdir(filepath) if 'ligand.mol2' in filename or 'ligand.pdb' in filename][0]
+        filetype = ligand_file.split('.')[1]
+        ligand_filepath = filepath + '/' + ligand_file
+        smile_line_to_write = convert_file_to_smiles(ligand_filepath, filetype)
+        with open(smiles_file, 'a') as smiles_batch:
+            smiles_batch.write(f'{smile_line_to_write}\n')
+            smiles_batch.close()
+        pbar.update(1)
