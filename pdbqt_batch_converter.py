@@ -2,6 +2,7 @@ import os
 import oddt
 import subprocess
 from tqdm import tqdm
+import shutil
 
 fatal_error_list = list()
 
@@ -11,6 +12,7 @@ prep_ligand_command = '/home/milesm/Dissertation/Third_Party_Code/MGLTools-1.5.6
 prep_protein_command = '/home/milesm/Dissertation/Third_Party_Code/MGLTools-1.5.6/MGLToolsPckgs/AutoDockTools/Utilities24/prepare_receptor4.py'
 
 destination_path = '/home/milesm/Dissertation/Data/PDBQT/Non_redundant_druglike/'
+problem_path = '/home/milesm/Dissertation/Data/PDBQT/Problem_Structures/'
 
 druglike_structure_folders = [(druglike_files_path + folder) for folder in os.listdir(druglike_files_path)]
 
@@ -96,4 +98,13 @@ def batch_convert_to_pdbqt(structure_folders, destination_path):
             autodock_convert(folder_name, destination_path, prep_ligand_command, prep_protein_command, ligand_filepath, ligand_file, receptor_filepath, receptor_file, filetype)
             pbar.update(1)
 
+def move_problematic_structures(fatal_error_list, destination_path, problem_path):
+    with tqdm(total=len(fatal_error_list)) as pbar:
+        for folder in fatal_error_list:
+            shutil.copytree(f'{destination_path}{folder}', f'{problem_path}{folder}')
+            shutil.rmtree(f'{destination_path}{folder}')
+            pbar.update(1)
+
 batch_convert_to_pdbqt(druglike_structure_folders, destination_path)
+
+move_problematic_structures(fatal_error_list, destination_path, problem_path)
