@@ -8,4 +8,4 @@ This project aims to use gradient boosted decision trees for binary classificati
 - Binding MOAD
 - PDBBind
 
-Please see my [**lab book**](https://github.com/miles-mcgibbon/XGBScore/blob/main/Labbook.ipynb) for extensive details of the work done so far, and explanations of the scripts in this repository.
+Please see my [**lab book**](https://github.com/miles-mcgibbon/XGBScore/blob/main/labbook/Labbook.ipynb) for extensive details of the work done so far, and explanations of the scripts in this repository.
