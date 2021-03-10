@@ -9,15 +9,17 @@ from tqdm import tqdm
 import pandas as pd
 import oddt
 from warnings import filterwarnings
+from tqdm import tqdm
+from itertools import chain as iterchain
 
 # ignore warnings about incomplete PDB structures, as Binding MOAD supplies truncated biounits
 filterwarnings('ignore')
 
-test_structures = ['/home/milesm/Desktop/1ui0.pdb',
-                   '/home/milesm/Desktop/1a0t.pdb',
-                   '/home/milesm/Desktop/6knh.pdb',
-                   '/home/milesm/Desktop/2vc7.pdb',
-                   '/home/milesm/Desktop/1b7h.pdb']
+structure_location = '/home/milesm/Dissertation/Data/Raw/Binding_MOAD/original_PDB_files/'
+
+structure_folders = os.listdir(structure_location)
+
+structures = [(structure_location + folder) for folder in structure_folders]
 
 success_destination_path = '/home/milesm/Desktop/Successes/'
 
@@ -162,6 +164,7 @@ def isolate_pocket_and_ligand(filename, datafile, success_destination_path, prob
     pdb_code_data = datafile.loc[datafile.PDBCode.str.upper() == pdb_code.upper()]
     protein_parts = pdb_code_data.loc[pdb_code_data.Validity == 'Part of Protein']
     protein_part_ids = [part.split(':')[0].split(' ') for part in list(protein_parts.LigandID)]
+    protein_part_ids = list(iterchain.from_iterable(protein_part_ids))
     if len(protein_part_ids) == 0:
         protein_part_ids.append(['NO KEY PROTEIN HETATMS'])
 
@@ -211,7 +214,7 @@ def isolate_pocket_and_ligand(filename, datafile, success_destination_path, prob
                             if atom.get_parent().id[0].replace('H_','') in valid_ligand_ids[0]:
                                 if str(atom.get_parent().get_parent().id) == valid_ligand_chain:
                                     pass
-                                elif atom.get_parent().id[0].replace('H_','') in protein_part_ids[0]:
+                                elif atom.get_parent().id[0].replace('H_','') in protein_part_ids:
                                     pass
                                 else:
                                     keep_structure = False
@@ -223,9 +226,10 @@ def isolate_pocket_and_ligand(filename, datafile, success_destination_path, prob
                         if atom.get_parent().id[0] == 'W':
                             pass
                         elif 'H' in atom.get_parent().id[0]:
-                            if atom.get_parent().id[0].replace('H_','') in valid_ligand_ids[0]:
+                            if atom.get_parent().id[0].replace('H_','').strip().lstrip() in valid_ligand_ids[0]:
                                 pass
-                            elif atom.get_parent().id[0].replace('H_','') in protein_part_ids[0]:
+                            elif atom.get_parent().id[0].replace('H_','').strip().lstrip() in protein_part_ids:
+                                print(f'Found a {atom.get_parent().id[0]}')
                                 pocket_residues.append(residue_unique_id)
                         elif atom.get_parent().id[0] == ' ':
                             pocket_residues.append(residue_unique_id)
@@ -248,5 +252,7 @@ def isolate_pocket_and_ligand(filename, datafile, success_destination_path, prob
         io.save(f'{problem_destination_path}{pdb_code}/{pdb_code}.pdb')
         pass
 
-for structure_file in test_structures:
-    isolate_pocket_and_ligand(structure_file, binding_df, success_destination_path, problem_destination_path, True)
+with tqdm(total=len(structures)) as pbar:
+    for structure_file in structures:
+        isolate_pocket_and_ligand(structure_file, binding_df, success_destination_path, problem_destination_path, True)
+        pbar.update(1)
