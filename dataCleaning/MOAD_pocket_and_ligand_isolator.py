@@ -8,40 +8,13 @@ from Bio.PDB import *
 from tqdm import tqdm
 import pandas as pd
 import oddt
+import sys
 from warnings import filterwarnings
 from tqdm import tqdm
 from itertools import chain as iterchain
 
 # ignore warnings about incomplete PDB structures, as Binding MOAD supplies truncated biounits
 filterwarnings('ignore')
-
-structure_location = '/home/milesm/Dissertation/Data/Raw/Binding_MOAD/original_PDB_files/'
-
-structure_folders = os.listdir(structure_location)
-
-structures = [(structure_location + folder) for folder in structure_folders]
-
-success_destination_path = '/home/milesm/Desktop/Successes/'
-
-problem_destination_path = '/home/milesm/Desktop/Problems/'
-
-binding_MOAD_datafile_path = '/home/milesm/Dissertation/Data/Raw/Binding_MOAD/Compressed/nr_bind.csv'
-
-force_columns = ['Decimal',
-                 'EntryString',
-                 'PDBCode',
-                 'LigandID',
-                 'Validity',
-                 'BindingDataType',
-                 'Equals',
-                 'BindingValue',
-                 'BindingUnits',
-                 'FormulaString',
-                 'FormulaStringSpill']
-
-binding_df = pd.read_csv(binding_MOAD_datafile_path, names=force_columns)
-
-binding_df['PDBCode'] = binding_df['PDBCode'].ffill()
 
 class ligand_selector(Select):
 
@@ -51,22 +24,6 @@ class ligand_selector(Select):
     def accept_residue(self, residue):
         # select residues from identified ligand
         return True if (str(residue.id[1]) + residue.get_parent().id) in self.keep_ligand_residues else False
-
-class protein_selector(Select):
-
-    def __init__(self, id_codes):
-        self.id_codes = id_codes
-
-    def accept_residue(self, residue):
-        # select protein residues
-        if residue.id[0] == " ":
-            return True
-        elif residue.id[0] in self.id_codes:
-            return True
-        elif residue.id[0].replace('H_','') in self.id_codes:
-            return True
-        else:
-            return False
 
 class pocket_selector(Select):
 
@@ -93,7 +50,6 @@ def pocket_check(x, y, z, min_x, min_y, min_z, max_x, max_y, max_z):
     else:
         return False
 
-
 def get_ligand_information(structure, valid_ligand_ids, valid_chain_id):
     ligand_residue_data = list()
     chain_data = list()
@@ -111,7 +67,6 @@ def broken_ligand_check(filepath, file_format, valid_ligand_ids, valid_chain_id,
     if len(ligand_information) == 1:
         return True
     else:
-        print(ligand_information)
         mol = next(oddt.toolkits.ob.readfile(file_format, filepath))
         bonds_dictionary = dict()
         residue_identifiers = list()
@@ -136,7 +91,7 @@ def broken_ligand_check(filepath, file_format, valid_ligand_ids, valid_chain_id,
         else:
             return True
 
-def isolate_pocket_and_ligand(filename, datafile, success_destination_path, problem_destination_path, peptide_filter):
+def isolate_pocket_and_ligand(filename, success_destination_path, problem_destination_path, datafile, cutoff_thresh, exclusion_thresh):
 
     amino_acids = ['ALA', 'ARG', 'ASN', 'ASP', 'ASX', 'CYS', 'GLU', 'GLN', 'GLX', 'GLY', 'HIS', 'ILE', 'LEU', 'LYS', 'MET', 'PHE', 'PRO', 'SER', 'THR', 'TRP', 'TYR', 'VAL']
 
@@ -156,7 +111,7 @@ def isolate_pocket_and_ligand(filename, datafile, success_destination_path, prob
     valid_ligand_chain = [ligand.split(':')[1] for ligand in list(ligand_data.LigandID)][0]
     valid_ligand_ids = [ligand.split(':')[0].split(' ') for ligand in list(ligand_data.LigandID)]
 
-    if len(list(set(valid_ligand_ids[0]).intersection(amino_acids))) != 0 and peptide_filter:
+    if len(list(set(valid_ligand_ids[0]).intersection(amino_acids))) != 0:
         print('Peptide Ligand detected!')
         keep_structure = False
 
@@ -197,13 +152,16 @@ def isolate_pocket_and_ligand(filename, datafile, success_destination_path, prob
         for chain_residue in chain.get_residues():
             if chain_residue.id[0].replace('H_','') in valid_ligand_ids[0]:
                 residue_unique_id = str(chain_residue.id[1]) + chain_residue.get_parent().id
-                ligand_pocket_dimensions = define_pocket(structure, chain_residue, 14)
-                ligand_exclusion = define_pocket(structure, chain_residue, 5)
+                ligand_pocket_dimensions = define_pocket(structure, chain_residue, cutoff_thresh)
+                ligand_exclusion = define_pocket(structure, chain_residue, exclusion_thresh)
                 ligand_dimensions[chain_residue.id[0].replace('H_','')] = ligand_pocket_dimensions
                 exclusion_dimensions[chain_residue.id[0].replace('H_','')] = ligand_exclusion
                 keep_ligand_residues.append(residue_unique_id)
 
-
+        if len(ligand_dimensions) == 0:
+            # only true if no ligand contains no HETATMS - second check for peptide ligands stored as single letter amino acid codes
+            print('Peptide Ligand detected!')
+            keep_structure = False
 
         for residue in structure.get_residues():
             for atom in residue.get_atoms():
@@ -229,7 +187,6 @@ def isolate_pocket_and_ligand(filename, datafile, success_destination_path, prob
                             if atom.get_parent().id[0].replace('H_','').strip().lstrip() in valid_ligand_ids[0]:
                                 pass
                             elif atom.get_parent().id[0].replace('H_','').strip().lstrip() in protein_part_ids:
-                                print(f'Found a {atom.get_parent().id[0]}')
                                 pocket_residues.append(residue_unique_id)
                         elif atom.get_parent().id[0] == ' ':
                             pocket_residues.append(residue_unique_id)
@@ -252,7 +209,50 @@ def isolate_pocket_and_ligand(filename, datafile, success_destination_path, prob
         io.save(f'{problem_destination_path}{pdb_code}/{pdb_code}.pdb')
         pass
 
-with tqdm(total=len(structures)) as pbar:
-    for structure_file in structures:
-        isolate_pocket_and_ligand(structure_file, binding_df, success_destination_path, problem_destination_path, True)
-        pbar.update(1)
+def parse_args(args):
+
+    structure_location = args[args.index('-loc') + 1]
+
+    success_destination_path = args[args.index('-suc') + 1]
+
+    problem_destination_path = args[args.index('-prob') + 1]
+
+    binding_MOAD_datafile_path = args[args.index('-ref') + 1]
+
+    cutoff_thresh = float(args[args.index('-cutoff') + 1])
+
+    exclusion_thresh = float(args[args.index('-exclusion') + 1])
+
+    return structure_location, success_destination_path, problem_destination_path, binding_MOAD_datafile_path, cutoff_thresh, exclusion_thresh
+
+def main():
+
+    structure_location, success_destination_path, problem_destination_path, binding_MOAD_datafile_path, cutoff_thresh, exclusion_thresh = parse_args(sys.argv)
+
+    structure_folders = os.listdir(structure_location)
+
+    structures = [(structure_location + folder) for folder in structure_folders]
+
+    force_columns = ['Decimal',
+                 'EntryString',
+                 'PDBCode',
+                 'LigandID',
+                 'Validity',
+                 'BindingDataType',
+                 'Equals',
+                 'BindingValue',
+                 'BindingUnits',
+                 'FormulaString',
+                 'FormulaStringSpill']
+
+    binding_df = pd.read_csv(binding_MOAD_datafile_path, names=force_columns)
+
+    binding_df['PDBCode'] = binding_df['PDBCode'].ffill()
+
+    with tqdm(total=len(structures)) as pbar:
+        for structure_file in structures:
+            isolate_pocket_and_ligand(structure_file, success_destination_path, problem_destination_path, binding_df, cutoff_thresh, exclusion_thresh)
+            pbar.update(1)
+
+if __name__ == '__main__':
+    main()
