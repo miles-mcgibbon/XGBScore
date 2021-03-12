@@ -1,6 +1,5 @@
 import os
 from biopandas.mol2 import PandasMol2
-from molmass import Formula
 import oddt
 from tqdm import tqdm
 import pandas as pd
