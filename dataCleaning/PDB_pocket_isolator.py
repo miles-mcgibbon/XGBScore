@@ -80,7 +80,7 @@ def isolate_pocket_and_ligand(filename, success_destination_path, problem_destin
 
     amino_acids = ['ALA', 'ARG', 'ASN', 'ASP', 'ASX', 'CYS', 'GLU', 'GLN', 'GLX', 'GLY', 'HIS', 'ILE', 'LEU', 'LYS', 'MET', 'PHE', 'PRO', 'SER', 'THR', 'TRP', 'TYR', 'VAL']
 
-    ligand = [f'{filename}/{file}' for file in os.listdir(filename) if 'ligand' in file][0]
+    ligand = [f'{filename}/{file}' for file in os.listdir(filename) if 'ligand.mol2' in file][0]
     ext = ligand.split('.')[1]
     print(ligand)
     print(ext)
