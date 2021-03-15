@@ -1,0 +1,3 @@
+[submodule "decoyGenerationAndDocking/DeepCoy"]
+	path = decoyGenerationAndDocking/DeepCoy
+	url = https://github.com/fimrie/DeepCoy.git
