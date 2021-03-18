@@ -25,7 +25,7 @@ def autodock_convert(folder_name, destination_path, prep_ligand_command, prep_pr
         ligand_outfile = ligand_file
     print('Preparing ligand...')
     try:
-        output = subprocess.check_output(f'{prep_ligand_command} -l {ligand_filepath} -A hydrogens -o {destination_path}{folder_name}/{ligand_outfile}qt', shell=True, stderr=subprocess.STDOUT)
+        output = subprocess.check_output(f'{prep_ligand_command} -l {ligand_filepath} -A hydrogens -o {destination_path}{folder_name}/{ligand_outfile}qt -U nphs', shell=True, stderr=subprocess.STDOUT)
     except:
         fatal_error_list.append(folder_name)
         if os.path.isfile('fatal_error_list.txt'):
@@ -37,7 +37,7 @@ def autodock_convert(folder_name, destination_path, prep_ligand_command, prep_pr
 
     print('Preparing protein...')
     try:
-        output = subprocess.check_output(f'{prep_protein_command} -r {receptor_filepath} -A hydrogens -o {destination_path}{folder_name}/{receptor_file}qt -U waters', shell=True)
+        output = subprocess.check_output(f'{prep_protein_command} -r {receptor_filepath} -A hydrogens -o {destination_path}{folder_name}/{receptor_file}qt -U nphs', shell=True)
     except:
         fatal_error_list.append(folder_name)
         if os.path.isfile('fatal_error_list.txt'):
