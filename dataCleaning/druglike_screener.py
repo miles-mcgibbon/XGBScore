@@ -7,23 +7,30 @@ import shutil
 import sys
 
 
-def get_stats_from_file(filepath):
+def get_stats_from_file(filepath): # gets Mw and number of rotatable bonds from ligand file
+
+    # get variables from filename
     filename = filepath.split('/')
     filename = filename[len(filename) - 1]
     pdb_code = filename.split('.')[0]
     file_format = str(filename.split('.')[1])
+
+    # load the molecule and get stats
     mol = next(oddt.toolkits.ob.readfile(file_format, filepath))
     mw = mol.molwt
     num_rotors = mol.num_rotors
+
     return mw, num_rotors
 
-def druglike_filter(mw, num_rotors, mw_thresh, num_rotors_thresh):
+def druglike_filter(mw, num_rotors, mw_thresh, num_rotors_thresh): # return True if ligand is druglike else False
+
+    # check Mw and number of rotatable bonds against user defined thresholds
     if mw <= mw_thresh and num_rotors <= num_rotors_thresh:
         return True
     else:
         return False
 
-def parse_args(args):
+def parse_args(args): # parse CLI user inputs
 
     files_path = args[args.index('-loc') + 1]
 
@@ -35,23 +42,29 @@ def parse_args(args):
 
     return files_path, destination_path, mw_thresh, num_rotors_thresh
 
-def main():
+def main(): # run script using CLI
 
+    # define counters for passes and fails
     passes = 0
-
     fails = 0
 
     files_path, destination_path, mw_thresh, num_rotors_thresh = parse_args(sys.argv)
-
     structure_folders = [(files_path + folder) for folder in os.listdir(files_path)]
 
+    # iterate over structures and test ligands
     with tqdm(total=len(structure_folders)) as pbar:
         for filepath in structure_folders:
+
+            # get variables from filename
             foldername = filepath.split('/')
             foldername = foldername[len(foldername) - 1]
+
+            # skip non structure files from PDBBind
             if foldername == 'index' or foldername == 'readme':
                 pass
             else:
+
+                # screen ligand against user defined druglike properties
                 ligand_file = [f'{filepath}/{filename}' for filename in os.listdir(filepath) if 'ligand' in filename][0]
                 ligand_stats = get_stats_from_file(ligand_file)
                 if druglike_filter(*ligand_stats, mw_thresh, num_rotors_thresh):
@@ -61,6 +74,7 @@ def main():
                     fails = fails + 1
             pbar.update(1)
 
+    # print results of filtering
     print(f'Filtering complete:')
     print(f'- {len(structure_folders)} total supplied ligands')
     print(f'- {passes} druglike molecules')
