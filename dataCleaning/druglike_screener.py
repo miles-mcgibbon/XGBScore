@@ -1,3 +1,10 @@
+'''
+Batch filters ligand pdb files against user defined druglike
+thresholds for molecular weight and number of rotatable bonds,
+and copies ligand (and conjugate receptor) files that qualify
+to user defined destination
+'''
+
 import os
 from biopandas.mol2 import PandasMol2
 import oddt
