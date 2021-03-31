@@ -1,3 +1,9 @@
+'''
+Fetches the pdb versions of all the structures in the pdbqt final
+dataset for conversion to smiles, as pdbqts contain artificially
+added polar hydrogens
+'''
+
 import os
 import oddt
 import subprocess
