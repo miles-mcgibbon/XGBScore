@@ -1,3 +1,9 @@
+'''
+Converts all active ligands in the dataset into smiles format
+for decoy generation with DeepCoy, and produces a reference
+csv file relating pdb codes to active smile strings
+'''
+
 import os
 from tqdm import tqdm
 import pypdb
