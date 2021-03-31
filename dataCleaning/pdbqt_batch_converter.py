@@ -1,3 +1,9 @@
+'''
+Batch converts pdb receptor and ligand files to pdbqt format
+using AutoDockTools scripts, adding gasteiger charges and
+polar hydrogens
+'''
+
 import os
 import oddt
 import subprocess
