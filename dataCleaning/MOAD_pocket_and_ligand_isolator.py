@@ -1,3 +1,11 @@
+'''
+Loops through Binding MOAD original pdb structures and
+splits them into respective ligand.pdb and receptor.pdb
+files; receptor.pdb file contains any residues with atoms
+within a user defined distance (cutoff_thresh) of the
+crystal ligand
+'''
+
 import os
 from Bio.PDB import *
 from tqdm import tqdm
