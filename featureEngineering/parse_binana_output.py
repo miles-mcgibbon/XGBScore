@@ -1,10 +1,13 @@
 import pandas as pd
 import io
 
+# read in binana output text file
 binana_file = open('/home/milesm/Desktop/7cpa/7cpa_BINANA_Data.txt', 'r')
 
+# cut out license and prose text
 binana_stats = binana_file.read().split('[- END INTRO -]')[1]
 
+# define headers for parsing
 headers = ['Atom-type pair counts within 2.5 angstroms:',
            'Atom-type pair counts within 4.0 angstroms:',
            'Ligand atom types:',
@@ -18,7 +21,10 @@ headers = ['Atom-type pair counts within 2.5 angstroms:',
            'Cation-pi interactions:',
            'Salt Bridges:']
 
-tables = {}
+# define dictionary for populating
+tables = dict()
+
+# extract markdown tables from text file and add to tables dict
 for index, header in enumerate(headers):
     if header == 'Number of rotatable bonds in the ligand:':
         table = binana_stats.split(header)[1].split(headers[index + 1])[0].strip().lstrip()
