@@ -8,35 +8,41 @@ from warnings import filterwarnings
 from tqdm import tqdm
 from itertools import chain as iterchain
 
-# ignore warnings about incomplete PDB structures, as Binding MOAD supplies truncated biounits
-filterwarnings('ignore')
-
-class pocket_selector(Select):
+class pocket_selector(Select): # selector class for BioPython which saves all residues in supplied 'pocket_residues' list
 
     def __init__(self, pocket_residues):
         self.pocket_residues = pocket_residues
 
-    def accept_residue(self, residue):
-        # select residues from identified ligand
+    def accept_residue(self, residue): # accept residues if unique identifier present in 'pocket_residues' list
         return True if (str(residue.id[1]) + residue.get_parent().id) in self.pocket_residues else False
 
-def define_pocket(structure, chain_residue, boundary):
+
+def define_pocket(structure, chain_residue, cutoff_thresh): # calculate cuboid coordinates around ligand with padding of user defined 'cutoff_thresh' angstroms
+
+    # construct list of coordinates of all atoms in ligand
     atom_coord_data = list()
     for atom in chain_residue.get_atoms():
         atom_coord_data.append(atom.get_coord())
+
+    # turn coordinates into dataframe
     atom_df = pd.DataFrame(atom_coord_data, columns=['X','Y','Z'])
-    min_x, max_x = (min(atom_df.X) - boundary), (max(atom_df.X) + boundary)
-    min_y, max_y = (min(atom_df.Y) - boundary), (max(atom_df.Y) + boundary)
-    min_z, max_z = (min(atom_df.Z) - boundary), (max(atom_df.Z) + boundary)
+
+    # calculate min and max of x, y, z coordinates and pad with 'cutoff_thresh' angstroms
+    min_x, max_x = (min(atom_df.X) - cutoff_thresh), (max(atom_df.X) + cutoff_thresh)
+    min_y, max_y = (min(atom_df.Y) - cutoff_thresh), (max(atom_df.Y) + cutoff_thresh)
+    min_z, max_z = (min(atom_df.Z) - cutoff_thresh), (max(atom_df.Z) + cutoff_thresh)
     return (min_x, min_y, min_z, max_x, max_y, max_z)
 
-def pocket_check(x, y, z, min_x, min_y, min_z, max_x, max_y, max_z):
+
+def pocket_check(x, y, z, min_x, min_y, min_z, max_x, max_y, max_z): # check if an atom is within the cuboid produced by 'define_pocket' function
     if min_x < x < max_x and min_y < y < max_y and min_z < z < max_z:
         return True
     else:
         return False
 
-def get_ligand_information(ligand):
+def get_ligand_information(ligand): # construct dataframe of ligand residues id, number, insertion code, chain letter
+
+    # make and return dataframe
     ligand_residue_data = list()
     chain_data = list()
     for residue in ligand.get_residues():
@@ -46,11 +52,16 @@ def get_ligand_information(ligand):
     ligand_df['CHAIN'] = chain_data
     return ligand_df
 
-def broken_ligand(ligand_filepath, file_format, ligand):
+def broken_ligand(ligand_filepath, file_format, ligand): # test for separate ligands stored as one chain
+
     ligand_information = get_ligand_information(ligand)
+
+    # pass test if only single residue in ligand
     if len(ligand_information) == 1:
         return False
     else:
+
+        # iterate through atoms and bonds to populate bonds_dictionary
         mol = next(oddt.toolkits.ob.readfile(file_format, ligand_filepath))
         bonds_dictionary = dict()
         residue_identifiers = list()
@@ -63,29 +74,37 @@ def broken_ligand(ligand_filepath, file_format, ligand):
                     for atom in bond.atoms:
                         atoms_in_residue.append(atom.idx)
             bonds_dictionary[residue_identifier] = atoms_in_residue
+
+        # check for continuous shared bonds between residues
         shared_bonds = None
         for index, item in enumerate(residue_identifiers):
             try:
                 shared_bonds = len(list(set(bonds_dictionary[residue_identifiers[index]]).intersection(bonds_dictionary[residue_identifiers[index + 1]])))
             except IndexError:
                 pass
+
+        # fail the test if no shared bonds found between residues else pass
         if shared_bonds == 0:
             return True
         else:
             return False
 
-def isolate_pocket_and_ligand(filename, success_destination_path, problem_destination_path, cutoff_thresh):
+def isolate_pocket(filename, success_destination_path, problem_destination_path, cutoff_thresh): # save all residues within cutoff_thresh of cuboid around ligand
 
+    # default unless problem found
     keep_structure = True
 
     amino_acids = ['ALA', 'ARG', 'ASN', 'ASP', 'ASX', 'CYS', 'GLU', 'GLN', 'GLX', 'GLY', 'HIS', 'ILE', 'LEU', 'LYS', 'MET', 'PHE', 'PRO', 'SER', 'THR', 'TRP', 'TYR', 'VAL']
 
+    # define variables from filename
     ligand = [f'{filename}/{file}' for file in os.listdir(filename) if 'ligand.mol2' in file][0]
     ext = ligand.split('.')[1]
-    print(ligand)
-    print(ext)
+
+    # make pdb copy of mol2 ligand
     mol = next(oddt.toolkits.ob.readfile(ext, ligand))
     mol.write('pdb', f"{ligand.split('.')[0]}.pdb", overwrite=True)
+
+    # define pdb structure filepaths
     ligand_path = [f'{filename}/{file}' for file in os.listdir(filename) if 'ligand.pdb' in file][0]
     protein_path = [f'{filename}/{file}' for file in os.listdir(filename) if 'protein' in file][0]
 
@@ -98,27 +117,32 @@ def isolate_pocket_and_ligand(filename, success_destination_path, problem_destin
     protein = parser.get_structure(pdb_code, protein_path)
     ligand = parser.get_structure('ligand', ligand_path)
 
+    # check for amino acids in ligand
     amino_acids_in_ligand = [residue.get_resname() for residue in ligand.get_residues() if residue.get_resname() in amino_acids]
     if len(amino_acids_in_ligand) != 0:
         print('Peptide Ligand detected!')
         keep_structure = False
 
+    # check for breaks in ligand
     elif broken_ligand(ligand_path, 'pdb', ligand):
         print('Found broken ligand!')
         keep_structure = False
 
     else:
 
+        # define dict for populating with cuboid dimensions for each residue in the ligand
         ligand_dimensions = dict()
 
+        # define list for populating with residues found within user defined cutoff_thresh
         pocket_residues = list()
 
+        # loop through residues in ligand and get surrounding cuboid dimensions
         for residue in ligand.get_residues():
             residue_unique_id = str(residue.id[1]) + residue.get_parent().id
             ligand_pocket_dimensions = define_pocket(ligand, residue, cutoff_thresh)
             ligand_dimensions[residue.id[0].replace('H_','')] = ligand_pocket_dimensions
 
-
+        # loop through residues in protein and add to 'pocket_residues' if they have any atoms inside cuboid cutoff_thresh
         for residue in protein.get_residues():
             for atom in residue.get_atoms():
                 x, y, z = atom.get_coord()
@@ -132,6 +156,7 @@ def isolate_pocket_and_ligand(filename, success_destination_path, problem_destin
     io = PDBIO()
     io.set_structure(protein)
 
+    # save the receptor and ligand files if structure is being kept
     if keep_structure:
         try:
             os.mkdir(f'{success_destination_path}{pdb_code}')
@@ -141,6 +166,8 @@ def isolate_pocket_and_ligand(filename, success_destination_path, problem_destin
         io.save(f'{success_destination_path}{pdb_code}/{pdb_code}_protein.pdb')
         mol.write('pdb', f'{success_destination_path}{pdb_code}/{pdb_code}_ligand.pdb', overwrite=True)
         print('Saved files!')
+
+    # save copy of the pdb file if structure has problems
     else:
         try:
             os.mkdir(f'{problem_destination_path}{pdb_code}')
@@ -150,7 +177,7 @@ def isolate_pocket_and_ligand(filename, success_destination_path, problem_destin
         io.save(f'{problem_destination_path}{pdb_code}/{pdb_code}.pdb')
         pass
 
-def parse_args(args):
+def parse_args(args): # parse CLI user inputs
 
     structure_location = args[args.index('-loc') + 1]
 
@@ -162,7 +189,7 @@ def parse_args(args):
 
     return structure_location, success_destination_path, problem_destination_path, cutoff_thresh
 
-def main():
+def main(): # run script using CLI
 
     structure_location, success_destination_path, problem_destination_path, cutoff_thresh = parse_args(sys.argv)
 
@@ -170,12 +197,13 @@ def main():
 
     structures = [(structure_location + folder) for folder in structure_folders]
 
+    # loop through structures and isolate pocket files
     with tqdm(total=len(structures)) as pbar:
         for structure_file in structures:
             if 'index' in structure_file or 'readme' in structure_file:
                 pass
             else:
-                isolate_pocket_and_ligand(structure_file, success_destination_path, problem_destination_path, cutoff_thresh)
+                isolate_pocket(structure_file, success_destination_path, problem_destination_path, cutoff_thresh)
                 pbar.update(1)
 
 if __name__ == '__main__':
