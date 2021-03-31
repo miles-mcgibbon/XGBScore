@@ -16,9 +16,10 @@ import subprocess
 from tqdm import tqdm
 import shutil
 import sys
+from rdkit import RDLogger
 
-# ignore rdkit warnings for UFFTYPER
-filterwarnings('ignore')
+# ignore rdkit warnings for UFFTYPER when reverting to defaults for bond lengths
+RDLogger.DisableLog('rdApp.*')
 
 def make_decoy_dict(decoy_file): # makes a dictionary with active smiles as keys and list of decoy smiles as values
 
