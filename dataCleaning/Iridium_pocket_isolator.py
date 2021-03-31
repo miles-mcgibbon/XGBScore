@@ -1,3 +1,10 @@
+'''
+Loops through Iridium dataset pdb structures and isolates
+a receptor.pdb file from the structure which includes any
+residues with atoms within a user defined distance
+(cutoff_thresh) of the crystal ligand
+'''
+
 import os
 from Bio.PDB import *
 from tqdm import tqdm
