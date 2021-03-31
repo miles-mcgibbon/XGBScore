@@ -91,15 +91,16 @@ def get_coordinates(file, size): # find the center x, y, z coordinates of the ac
     z_center = z_min + abs(z_min-z_max)/2
 
     # calculate lengths for each axis based on difference between min and max values multiplied by user defined size variable
-    x_range = (abs(x_min-x_max)*size)
-    y_range = (abs(y_min-y_max)*size)
-    z_range = (abs(z_min-z_max)*size)
+    x_range = (abs(x_min-x_max)+size)
+    y_range = (abs(y_min-y_max)+size)
+    z_range = (abs(z_min-z_max)+size)
 
     return x_center, y_center, z_center, x_range, y_range, z_range
 
 
 def dock_file(docker_command, protein_filepath, ligand_filepath, center_x, center_y, center_z, size_x, size_y, size_z): # dock the decoy pdbqt to the receptor pdbqt using GWOVina CLI
-    os.system(f'{docker_command} --receptor {protein_filepath} --ligand {ligand_filepath}  --center_x  {center_x} --center_y {center_y} --center_z {center_z} --size_x  {size_x} --size_y {size_y}  --size_z {size_z}')
+    os.system(f'{docker_command} --receptor {protein_filepath} --ligand {ligand_filepath}  --center_x  {center_x} --center_y {center_y} --center_z {center_z} --size_x  {size_x} --size_y {size_y}  --size_z {size_z}' \
+              '--exhaustiveness=32 --num_wolves=40 --num_modes=5 --energy_range=4')
 
 
 def dock_all_decoys(decoy_pdbqts, pdbqt_files, docker_command, docked_decoys): # batch dock all decoy.pdbqt files in 'decoy_pdbqts' folder
