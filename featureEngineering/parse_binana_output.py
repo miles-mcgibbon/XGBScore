@@ -1,3 +1,9 @@
+'''
+UNFINISHED
+Takes .txt output of binana.py and parses it into a csv file for
+model training and testing
+'''
+
 import pandas as pd
 import io
 
