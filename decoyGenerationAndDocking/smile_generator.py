@@ -9,18 +9,27 @@ from rdkit import Chem
 from rdkit.Chem import AllChem
 from rdkit.Chem import rdFMCS
 
-def convert_file_to_smiles(filepath, filetype, phosphorous_only):
+def convert_file_to_smiles(filepath, filetype, phosphorous_only): # use rdkit to convert ligand file to smiles format
+
+    # get variables from filename
     filename = filepath.split('/')
     filename = filename[len(filename) - 1]
+
+    # convert to smiles file
     if filetype == 'pdb':
         mol = Chem.MolFromPDBFile(filepath)
         smi = Chem.MolToSmiles(mol)
     elif filetype == 'mol2':
         mol = Chem.MolFromMol2File(filepath)
         smi = Chem.MolToSmiles(mol)
+
+    # check for empty ligands and raise exception
     if len(smi.strip().split()) == 0:
         raise BadLigandException
+
     if phosphorous_only:
+
+        # return only phosphorous containing ligands
         if 'P' in str(smi):
             return smi
         elif 'p' in str(smi):
@@ -28,6 +37,8 @@ def convert_file_to_smiles(filepath, filetype, phosphorous_only):
         else:
             return None
     else:
+
+        # return only ligands that do not contain phosphorous
         if 'P' in str(smi):
             return None
         elif 'p' in str(smi):
@@ -35,29 +46,41 @@ def convert_file_to_smiles(filepath, filetype, phosphorous_only):
         else:
             return smi
 
-def load_active_crystal_ligands(pdb_folders, backup_folder, phosphorous_only):
+def load_active_crystal_ligands(pdb_folders, backup_folder, phosphorous_only): # construct dictionary of pdb_code keys and active ligand smiles values
+
+    # define variables for populating
     crystal_ligands_dict = dict()
     errors = list()
+
+    # loop through pdb structure folders
     for filepath in pdb_folders:
+
+        # get variables from filename
         foldername = filepath.split('/')
         foldername = foldername[len(foldername) - 1]
         ligand_file = [(filepath + '/' + filename) for filename in os.listdir(filepath) if 'ligand.pdb' in filename][0]
+
+        # try to convert pdb version to smile and add to dictionary
         try:
             ligand_smile = convert_file_to_smiles(ligand_file, 'pdb', phosphorous_only).strip().lstrip()
             if ligand_smile is not None:
                 crystal_ligands_dict[foldername] = ligand_smile
+
+        # try original mol2 file for PDBBind ligands which raise errors
         except:
             try:
                 ligand_smile = convert_file_to_smiles(f'{backup_folder}{foldername}/{foldername}_ligand.mol2', 'mol2', phosphorous_only).strip().lstrip()
                 if ligand_smile is not None:
                     crystal_ligands_dict[foldername] = ligand_smile
+
+            # add ligands with unresolvable errors to error list
             except Exception as e:
                 print(str(e))
                 errors.append(foldername)
+
     return crystal_ligands_dict, errors
 
-
-def parse_args(args):
+def parse_args(args): # parse CLI user inputs
 
     pdb_druglike_files_path = args[args.index('-loc') + 1]
 
@@ -72,12 +95,13 @@ def parse_args(args):
 
     return pdb_druglike_files_path, backup_path, int(split_files), phosphorous_only
 
-def main():
+def main(): # run script using CLI
 
     pdb_druglike_files_path, backup_path, split_files, phosphorous_only = parse_args(sys.argv)
 
     pdb_folders = [(pdb_druglike_files_path + folder) for folder in os.listdir(pdb_druglike_files_path)]
 
+    # create dictionary of pdb_codes and active smiles
     actives_dict, errors = load_active_crystal_ligands(pdb_folders, backup_path, phosphorous_only)
 
     print(f'Completed with {len(errors)} skipped files:')
@@ -89,6 +113,7 @@ def main():
         df = pd.DataFrame({'PDB_CODE':actives_dict.keys(), 'SMILE':actives_dict.values()})
         df.to_csv('phosphorousSmileReferenceSheet.csv')
 
+        # write out the actives smiles for DeepCoy
         smiles = list(actives_dict.values())
         print(len(smiles))
         split_files = int(len(smiles)/split_files)
@@ -100,6 +125,11 @@ def main():
             outfile.close()
 
     else:
+        # make reference .csv file
+        df = pd.DataFrame({'PDB_CODE':actives_dict.keys(), 'SMILE':actives_dict.values()})
+        df.to_csv('noPhosphorousSmileReferenceSheet.csv')
+
+        # write out the actives smiles for DeepCoy
         smiles = list(actives_dict.values())
         print(len(smiles))
         split_files = int(len(smiles)/split_files)
@@ -109,11 +139,6 @@ def main():
             outfile = open(f"np_actives_{marker}.smi", "w+")
             outfile.write("\n".join(str(i) for i in smile_list))
             outfile.close()
-
-        # make reference .csv file
-        df = pd.DataFrame({'PDB_CODE':actives_dict.keys(), 'SMILE':actives_dict.values()})
-        df.to_csv('noPhosphorousSmileReferenceSheet.csv')
-
 
 if __name__ == '__main__':
     main()
