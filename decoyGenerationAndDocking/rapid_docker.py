@@ -8,6 +8,7 @@ import os
 from biopandas.mol2 import PandasMol2
 from biopandas.pdb import PandasPdb
 import pandas as pd
+from warnings import filterwarnings
 import pprint
 from rdkit import Chem
 from rdkit.Chem import AllChem
@@ -15,6 +16,9 @@ import subprocess
 from tqdm import tqdm
 import shutil
 import sys
+
+# ignore rdkit warnings for UFFTYPER
+filterwarnings('ignore')
 
 def make_decoy_dict(decoy_file): # makes a dictionary with active smiles as keys and list of decoy smiles as values
 
@@ -39,6 +43,7 @@ def make_pdbs_from_smiles(ref_df, decoy_files, decoy_pdbs): # make and save pdb 
 
     # for each batch of decoys make pdb copies
     for decoy_file in decoy_files:
+        print(f'Processing batch {decoy_files.index(decoy_file) + 1} of {len(decoy_files)}')
         decoy_dict = make_decoy_dict(decoy_file)
         with tqdm(total=len(decoy_dict.keys())) as pbar:
             for active in decoy_dict.keys():
@@ -63,12 +68,18 @@ def make_pdbs_from_smiles(ref_df, decoy_files, decoy_pdbs): # make and save pdb 
 
 def autodock_convert(destination_path, prep_ligand_command, ligand_filepath): # converts files from .pdb format to .pdbqt format using AutoDockTools
 
+    # setup for populating
+    errors_list = list()
+
     # get filename from filepath
     ligand_file = ligand_filepath.split('/')[len(ligand_filepath.split('/')) - 1]
-    print('Preparing ligand...')
 
     # use AutoDockTools CLI to convert pdb file adding gasteiger charges and polar hydrogens
-    output = subprocess.check_output(f'{prep_ligand_command} -l {ligand_filepath} -A hydrogens -o {destination_path}{ligand_file}qt -U nphs', shell=True, stderr=subprocess.STDOUT)
+    try:
+        output = subprocess.check_output(f'{prep_ligand_command} -l {ligand_filepath} -A hydrogens -o {destination_path}{ligand_file}qt -U nphs', shell=True, stderr=subprocess.STDOUT)
+    except:
+        print(f'ERROR: {ligand_filepath}')
+
 
 
 def make_pdbqts_from_pdbs(decoy_pdbs, decoy_pdbqts, prep_ligand_command): # make and save pdbqt copies of decoy pdb files
@@ -106,7 +117,7 @@ def get_coordinates(file, size): # find the center x, y, z coordinates of the ac
 
 def dock_file(docker_command, protein_filepath, ligand_filepath, center_x, center_y, center_z, size_x, size_y, size_z): # dock the decoy pdbqt to the receptor pdbqt using GWOVina CLI
     os.system(f'{docker_command} --receptor {protein_filepath} --ligand {ligand_filepath}  --center_x  {center_x} --center_y {center_y} --center_z {center_z} --size_x  {size_x} --size_y {size_y}  --size_z {size_z}' \
-              '--exhaustiveness=32 --num_wolves=40 --num_modes=5 --energy_range=4')
+              ' --exhaustiveness=32 --num_wolves=40 --num_modes=5 --energy_range=4')
 
 
 def dock_all_decoys(decoy_pdbqts, pdbqt_files, docker_command, docked_decoys): # batch dock all decoy.pdbqt files in 'decoy_pdbqts' folder
@@ -117,7 +128,7 @@ def dock_all_decoys(decoy_pdbqts, pdbqt_files, docker_command, docked_decoys): #
         for filepath, filename in zip(decoy_pdbqt_files, os.listdir(decoy_pdbqts)):
 
             # define file variables
-            pdb_code = filename.split('_')[0][1:]
+            pdb_code = filename.split('_')[0]
             foldername = filename.split('.')[0]
             receptor_file = f'{pdbqt_files}{pdb_code}/{pdb_code}_receptor.pdbqt'
             example_crystal_ligand = f'{pdbqt_files}{pdb_code}/{pdb_code}_ligand.pdbqt'
