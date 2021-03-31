@@ -1,3 +1,9 @@
+'''
+Creates pdb and pdbqt copies of DeepCoy produced .smi decoys
+and then docks these pdbqt decoys into their respective
+active crystal receptor.pdbqt file using GWOVina
+'''
+
 import os
 from biopandas.mol2 import PandasMol2
 from biopandas.pdb import PandasPdb
