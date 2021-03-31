@@ -66,29 +66,33 @@ def make_pdbs_from_smiles(ref_df, decoy_files, decoy_pdbs): # make and save pdb 
                 pbar.update(1)
 
 
-def autodock_convert(destination_path, prep_ligand_command, ligand_filepath): # converts files from .pdb format to .pdbqt format using AutoDockTools
+def autodock_convert(destination_path, mgl_tools_path, ligand_filepath): # converts files from .pdb format to .pdbqt format using AutoDockTools
 
     # setup for populating
     errors_list = list()
+
+    # define mgl_tools script paths
+    pythonsh_path = f'{mgl_tools_path}bin/pythonsh'
+    prepare_ligand_path = f'{mgl_tools_path}MGLToolsPckgs/AutoDockTools/Utilities24/prepare_ligand4.py'
 
     # get filename from filepath
     ligand_file = ligand_filepath.split('/')[len(ligand_filepath.split('/')) - 1]
 
     # use AutoDockTools CLI to convert pdb file adding gasteiger charges and polar hydrogens
     try:
-        output = subprocess.check_output(f'{prep_ligand_command} -l {ligand_filepath} -A hydrogens -o {destination_path}{ligand_file}qt -U nphs', shell=True, stderr=subprocess.STDOUT)
+        output = subprocess.check_output(f'{pythonsh_path} {prepare_ligand_path} -l {ligand_filepath} -A hydrogens -o {destination_path}{ligand_file}qt -U nphs', shell=True, stderr=subprocess.STDOUT)
     except:
         print(f'ERROR: {ligand_filepath}')
 
 
 
-def make_pdbqts_from_pdbs(decoy_pdbs, decoy_pdbqts, prep_ligand_command): # make and save pdbqt copies of decoy pdb files
+def make_pdbqts_from_pdbs(decoy_pdbs, decoy_pdbqts, mgl_tools_path): # make and save pdbqt copies of decoy pdb files
 
     # iterate over pdb decoy files and convert them
     decoy_pdb_files = [f'{decoy_pdbs}{file}' for file in os.listdir(decoy_pdbs)]
     with tqdm(total=len(decoy_pdb_files)) as pbar:
         for file in decoy_pdb_files:
-            autodock_convert(decoy_pdbqts, prep_ligand_command, file)
+            autodock_convert(decoy_pdbqts, mgl_tools_path, file)
             pbar.update(1)
 
 
@@ -158,14 +162,14 @@ def parse_args(args): # parse CLI user inputs
 
     decoy_files = [f'{decoys}{file}' for file in os.listdir(decoys)]
 
-    prep_ligand_command = args[args.index('-prep_lig') + 1]
+    mgl_tools_path = args[args.index('-mgl') + 1]
 
-    return docker_command, ref_df, pdbqt_files, decoys, docked_decoys, decoy_files, prep_ligand_command
+    return docker_command, ref_df, pdbqt_files, decoys, docked_decoys, decoy_files, mgl_tools_path
 
 
 def main(): # run script using CLI
 
-    docker_command, ref_df, pdbqt_files, decoys, docked_decoys, decoy_files, prep_ligand_command = parse_args(sys.argv)
+    docker_command, ref_df, pdbqt_files, decoys, docked_decoys, decoy_files, mgl_tools_path = parse_args(sys.argv)
 
     # make output folders if none exist
     decoy_pdbs = os.path.join(os.path.dirname(__file__), 'decoy_pdbs','')
@@ -177,7 +181,7 @@ def main(): # run script using CLI
 
     # first convert decoys from smiles to pdbqt
     make_pdbs_from_smiles(ref_df, decoy_files, decoy_pdbs)
-    make_pdbqts_from_pdbs(decoy_pdbs, decoy_pdbqts, prep_ligand_command)
+    make_pdbqts_from_pdbs(decoy_pdbs, decoy_pdbqts, mgl_tools_path)
 
     # dock the decoy pdbqts to the respetive crystal receptor.pdbqt
     dock_all_decoys(decoy_pdbqts, pdbqt_files, docker_command, docked_decoys)
