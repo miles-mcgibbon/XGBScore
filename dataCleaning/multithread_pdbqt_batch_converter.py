@@ -106,7 +106,7 @@ def parse_args(args): # parse CLI user inputs
 
     prep_protein_command = args[args.index('-prep_prot') + 1]
 
-    num_threads = args[args.index('-threads') + 1]
+    num_threads = int(args[args.index('-threads') + 1])
 
     return druglike_files_path, destination_path, problem_path, prep_ligand_command, prep_protein_command, num_threads
 
