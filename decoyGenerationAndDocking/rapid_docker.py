@@ -97,7 +97,7 @@ def make_pdbqts_from_pdbs(decoy_pdbs, decoy_pdbqts, mgl_tools_path): # make and 
             pbar.update(1)
 
 
-def get_coordinates(file, size): # find the center x, y, z coordinates of the active crystal ligand and construct a binding site cuboid around this center point
+def get_coordinates(file, padding): # find the center x, y, z coordinates of the active crystal ligand and construct a binding site cuboid around this center point
 
     # read the pdb file as a dataframe
     pmol = PandasPdb().read_pdb(file)
@@ -112,10 +112,10 @@ def get_coordinates(file, size): # find the center x, y, z coordinates of the ac
     y_center = y_min + abs(y_min-y_max)/2
     z_center = z_min + abs(z_min-z_max)/2
 
-    # calculate lengths for each axis based on difference between min and max values multiplied by user defined size variable
-    x_range = (abs(x_min-x_max)+size)
-    y_range = (abs(y_min-y_max)+size)
-    z_range = (abs(z_min-z_max)+size)
+    # calculate lengths for each axis based on difference between min and max values multiplied by user defined padding variable
+    x_range = (abs(x_min-x_max)+padding)
+    y_range = (abs(y_min-y_max)+padding)
+    z_range = (abs(z_min-z_max)+padding)
 
     return x_center, y_center, z_center, x_range, y_range, z_range
 
@@ -125,7 +125,7 @@ def dock_file(docker_command, protein_filepath, ligand_filepath, center_x, cente
               ' --exhaustiveness=32 --num_wolves=40 --num_modes=5 --energy_range=4')
 
 
-def dock_all_decoys(decoy_pdbqts, pdbqt_files, docker_command, docked_decoys): # batch dock all decoy.pdbqt files in 'decoy_pdbqts' folder
+def dock_all_decoys(decoy_pdbqts, pdbqt_files, docker_command, docked_decoys, padding): # batch dock all decoy.pdbqt files in 'decoy_pdbqts' folder
 
     # iterate over pdbqt decoy files and dock
     decoy_pdbqt_files = [f'{decoy_pdbqts}{file}' for file in os.listdir(decoy_pdbqts)]
@@ -139,7 +139,7 @@ def dock_all_decoys(decoy_pdbqts, pdbqt_files, docker_command, docked_decoys): #
             example_crystal_ligand = f'{pdbqt_files}{pdb_code}/{pdb_code}_ligand.pdbqt'
 
             # dock the decoy to the active crystal receptor.pdbqt
-            dock_file(docker_command, receptor_file, filepath, *get_coordinates(example_crystal_ligand, 12))
+            dock_file(docker_command, receptor_file, filepath, *get_coordinates(example_crystal_ligand, padding))
 
             # make destination folder and transfer AutoDockTools output decoy.pdbqt to destination folder
             os.mkdir(f'{docked_decoys}{foldername}')
@@ -165,12 +165,14 @@ def parse_args(args): # parse CLI user inputs
 
     mgl_tools_path = args[args.index('-mgl') + 1]
 
-    return docker_command, ref_df, pdbqt_files, decoys, docked_decoys, decoy_files, mgl_tools_path
+    padding = int(args[args.index('-pad') + 1])
+
+    return docker_command, ref_df, pdbqt_files, decoys, docked_decoys, decoy_files, mgl_tools_path, padding
 
 
 def main(): # run script using CLI
 
-    docker_command, ref_df, pdbqt_files, decoys, docked_decoys, decoy_files, mgl_tools_path = parse_args(sys.argv)
+    docker_command, ref_df, pdbqt_files, decoys, docked_decoys, decoy_files, mgl_tools_path, padding = parse_args(sys.argv)
 
     # make output folders if none exist
     decoy_pdbs = os.path.join(os.path.dirname(__file__), 'decoy_pdbs','')
@@ -185,7 +187,7 @@ def main(): # run script using CLI
     make_pdbqts_from_pdbs(decoy_pdbs, decoy_pdbqts, mgl_tools_path)
 
     # dock the decoy pdbqts to the respetive crystal receptor.pdbqt
-    dock_all_decoys(decoy_pdbqts, pdbqt_files, docker_command, docked_decoys)
+    dock_all_decoys(decoy_pdbqts, pdbqt_files, docker_command, docked_decoys, padding)
 
 if __name__ == '__main__':
     main()
