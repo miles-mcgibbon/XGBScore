@@ -139,7 +139,7 @@ def dock_all_decoys(decoy_pdbqts, pdbqt_files, docker_command, docked_decoys): #
             example_crystal_ligand = f'{pdbqt_files}{pdb_code}/{pdb_code}_ligand.pdbqt'
 
             # dock the decoy to the active crystal receptor.pdbqt
-            dock_file(docker_command, receptor_file, filepath, *get_coordinates(example_crystal_ligand, 1))
+            dock_file(docker_command, receptor_file, filepath, *get_coordinates(example_crystal_ligand, 12))
 
             # make destination folder and transfer AutoDockTools output decoy.pdbqt to destination folder
             os.mkdir(f'{docked_decoys}{foldername}')
