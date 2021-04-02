@@ -8,6 +8,8 @@ import pandas as pd
 from io import StringIO
 import os
 import sys
+import shutil
+from tqdm import tqdm
 
 def load_moad(binding_moad_data): # load binding data from Binding MOAD dataset into dataframe
 
@@ -157,6 +159,14 @@ def main(): # run script using CLI
     else:
         print(f'Unable to find binding data for {len(missing_structures)} structures:')
         print(missing_structures)
+        answer = input('Make copy of dataset without these structures? (y/n)')
+        if answer == 'y':
+            os.mkdir(f'{pdbqt_files_path[:len(pdbqt_files_path) - 1]}_with_binding_data')
+            print('Copying files...')
+            with tqdm(total=len(final_df)) as pbar:
+                for structure in list(final_df['PDBCode']):
+                    shutil.copytree(f'{pdbqt_files_path}{structure}', f'{pdbqt_files_path[:len(pdbqt_files_path) - 1]}_with_binding_data/{structure}')
+                    pbar.update(1)
 
 if __name__ == '__main__':
     main()
