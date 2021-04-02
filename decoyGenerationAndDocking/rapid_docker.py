@@ -39,8 +39,14 @@ def make_decoy_dict(decoy_file): # makes a dictionary with active smiles as keys
 
 def make_pdbs_from_smiles(ref_df, decoy_files, decoy_pdbs): # make and save pdb copies of decoy smiles files
 
-    # load reference .csv produced by smile_generator.py
-    pdb_code_dict = dict(zip(list(ref_df['SMILE']), list(ref_df['PDB_CODE'])))
+    # load reference .csv produced by smile_generator.py and make dictionary with smiles as keys and lists of pdb codes as values
+    pdb_code_dict = dict()
+
+    for active in list(ref_df['SMILE']):
+        active_df = ref_df.loc[ref_df.SMILE == active]
+        associated_pdb_codes = list(active_df['PDB_CODE'])
+        pdb_code_dict[active] = associated_pdb_codes
+
 
     # for each batch of decoys make pdb copies
     for decoy_file in decoy_files:
@@ -49,7 +55,7 @@ def make_pdbs_from_smiles(ref_df, decoy_files, decoy_pdbs): # make and save pdb 
         with tqdm(total=len(decoy_dict.keys())) as pbar:
             for active in decoy_dict.keys():
                 decoy_rank = 1
-                pdb_code = pdb_code_dict.get(active)
+                pdb_codes = pdb_code_dict.get(active)
                 decoys = decoy_dict.get(active)
                 for decoy in decoys:
 
@@ -62,7 +68,8 @@ def make_pdbs_from_smiles(ref_df, decoy_files, decoy_pdbs): # make and save pdb 
                     ligand = Chem.RemoveHs(h_ligand)
 
                     # save the produced pdb file
-                    Chem.MolToPDBFile(ligand, f'{decoy_pdbs}{pdb_code}_decoy_{decoy_rank}.pdb')
+                    for pdb_code in pdb_codes:
+                        Chem.MolToPDBFile(ligand, f'{decoy_pdbs}{pdb_code}_decoy_{decoy_rank}.pdb')
                     decoy_rank = decoy_rank + 1
                 pbar.update(1)
 
