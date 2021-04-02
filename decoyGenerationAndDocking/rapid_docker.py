@@ -139,13 +139,16 @@ def dock_all_decoys(decoy_pdbqts, pdbqt_files, docker_command, docked_decoys, pa
             example_crystal_ligand = f'{pdbqt_files}{pdb_code}/{pdb_code}_ligand.pdbqt'
 
             # dock the decoy to the active crystal receptor.pdbqt
-            dock_file(docker_command, receptor_file, filepath, *get_coordinates(example_crystal_ligand, padding))
+            try:
+                dock_file(docker_command, receptor_file, filepath, *get_coordinates(example_crystal_ligand, padding))
 
-            # make destination folder and transfer AutoDockTools output decoy.pdbqt to destination folder
-            os.mkdir(f'{docked_decoys}{foldername}')
-            shutil.copyfile(f'{decoy_pdbqts}{foldername}_out.pdbqt',f'{docked_decoys}{foldername}/{foldername}_ligand.pdbqt')
-            shutil.copyfile(receptor_file, f'{docked_decoys}{foldername}/{foldername}_receptor.pdbqt')
-            os.remove(f'{decoy_pdbqts}{foldername}_out.pdbqt')
+                # make destination folder and transfer AutoDockTools output decoy.pdbqt to destination folder
+                os.mkdir(f'{docked_decoys}{foldername}')
+                shutil.copyfile(f'{decoy_pdbqts}{foldername}_out.pdbqt',f'{docked_decoys}{foldername}/{foldername}_ligand.pdbqt')
+                shutil.copyfile(receptor_file, f'{docked_decoys}{foldername}/{foldername}_receptor.pdbqt')
+                os.remove(f'{decoy_pdbqts}{foldername}_out.pdbqt')
+            except:
+                print(f'ERROR: Could not dock {filename}')
             pbar.update(1)
 
 
