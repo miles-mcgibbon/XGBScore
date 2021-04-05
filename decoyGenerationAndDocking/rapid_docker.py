@@ -109,10 +109,15 @@ def get_coordinates(file, padding): # find the center x, y, z coordinates of the
     # read the pdb file as a dataframe
     pmol = PandasPdb().read_pdb(file)
 
+    # combine atoms and hetatm coordinates into one master dataframe
+    atom_df = pmol.df['ATOM']
+    hetatm_df = pmol.df['HETATM']
+    full_atom_df = pd.concat([atom_df, hetatm_df])
+
     # find the minimum and maximum x, y, z coordinates for atoms in crystal ligand file
-    x_min, x_max = min(pmol.df['ATOM'].x_coord), max(pmol.df['ATOM'].x_coord)
-    y_min, y_max = min(pmol.df['ATOM'].y_coord), max(pmol.df['ATOM'].y_coord)
-    z_min, z_max = min(pmol.df['ATOM'].z_coord), max(pmol.df['ATOM'].z_coord)
+    x_min, x_max = min(full_atom_df.x_coord), max(full_atom_df.x_coord)
+    y_min, y_max = min(full_atom_df.y_coord), max(full_atom_df.y_coord)
+    z_min, z_max = min(full_atom_df.z_coord), max(full_atom_df.z_coord)
 
     # find center point for each axis
     x_center = x_min + abs(x_min-x_max)/2
@@ -129,7 +134,7 @@ def get_coordinates(file, padding): # find the center x, y, z coordinates of the
 
 def dock_file(docker_command, protein_filepath, ligand_filepath, center_x, center_y, center_z, size_x, size_y, size_z): # dock the decoy pdbqt to the receptor pdbqt using GWOVina CLI
     os.system(f'{docker_command} --receptor {protein_filepath} --ligand {ligand_filepath}  --center_x  {center_x} --center_y {center_y} --center_z {center_z} --size_x  {size_x} --size_y {size_y}  --size_z {size_z}' \
-              ' --exhaustiveness=32 --num_wolves=40 --num_modes=5 --energy_range=4')
+              ' --exhaustiveness=16 --num_wolves=16 --num_modes=1 --energy_range=3')
 
 
 def dock_all_decoys(decoy_pdbqts, pdbqt_files, docker_command, docked_decoys, padding): # batch dock all decoy.pdbqt files in 'decoy_pdbqts' folder
