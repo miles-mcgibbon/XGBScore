@@ -199,7 +199,7 @@ def parse_args(args): # parse CLI user inputs
 
     binana_files_path = args[args.index('-loc') + 1]
 
-    destination_path = args[args.index('-csv') + 1]
+    destination_path = args[args.index('-out') + 1]
 
     return binana_files_path, destination_path
 
