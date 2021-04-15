@@ -79,10 +79,22 @@ def summarise_missing(decoy_thresh, decoy_summary_df, active_pdbqts, decoy_pdbqt
         include = input('Copy decoys into this dataset? (y/n)')
         if include == 'y':
             print('Copying decoys...')
-            decoys_to_copy = [decoy for decoy in os.listdir(decoy_pdbqts) if decoy[:4] in structures_with_decoys]
-            with tqdm(total=len(decoys_to_copy)) as pbar:
-                for decoy in decoys_to_copy:
-                    shutil.copytree(f'{decoy_pdbqts}{decoy}', f'{active_pdbqts[:len(active_pdbqts) - 1]}_with_decoys/{decoy}')
+            with tqdm(total=len(structures_with_decoys)) as pbar:
+                for structure in structures_with_decoys:
+
+                    # get folder names of all decoys for that active
+                    decoys_to_copy = [decoy for decoy in os.listdir(decoy_pdbqts) if decoy[:4] in structure]
+
+                    # temporarily change naming convention to from decoy_1 to decoy_01 for sorting to ensure best 10 decoys are selected
+                    decoys_to_copy = sorted([f'{decoy[:11]}0{decoy[11:]}' if len(decoy[11:]) == 1 else decoy for decoy in decoys_to_copy])[:decoy_thresh]
+                    for decoy in decoys_to_copy:
+                        
+                        # amend naming convention in filepath for copying
+                        if decoy[11] == '0':
+                            decoy = f'{decoy[:11]}{decoy[12]}'
+                            shutil.copytree(f'{decoy_pdbqts}{decoy}', f'{active_pdbqts[:len(active_pdbqts) - 1]}_with_decoys/{decoy}')
+                        else:
+                            shutil.copytree(f'{decoy_pdbqts}{decoy}', f'{active_pdbqts[:len(active_pdbqts) - 1]}_with_decoys/{decoy}')
                     pbar.update(1)
         else:
             pass
