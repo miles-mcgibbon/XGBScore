@@ -6,8 +6,6 @@ csv file relating pdb codes to active smile strings
 
 import os
 from tqdm import tqdm
-import pypdb
-import pprint
 import pandas as pd
 import sys
 import rdkit
