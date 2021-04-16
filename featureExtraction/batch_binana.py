@@ -25,11 +25,11 @@ def run_binana(folder_name, ligand_path, receptor_path, ligand): # use binana.py
     except subprocess.CalledProcessError as e:
 
         # record error and save to fatal_error_list
-        fatal_error_list.append(ligand)
+        fatal_error_list.append(folder_name)
         if os.path.isfile('fatal_error_list.txt'):
             os.remove('fatal_error_list.txt')
         with open('fatal_error_list.txt','a+') as error_list:
-            error_list.write(str(fatal_error_list) + '\n' + str(errors))
+            error_list.write(str(fatal_error_list) + '\n' + str(e))
             error_list.close()
         print(f'FATAL PROBLEM WITH {folder_name}: Added to list and skipping...')
 
@@ -62,13 +62,14 @@ def move_problematic_structures(fatal_error_list, pdbqt_files_path, problem_path
 
     # remove duplicates from fatal error list
     fatal_error_list = list(set(list(fatal_error_list)))
+    print(fatal_error_list)
 
     # copy folders to user defined problem directory
     with tqdm(total=len(fatal_error_list)) as pbar:
         for folder in fatal_error_list:
-            shutil.copytree(f'{pdbqt_files_path}{folder}', f'{problem_path}{folder}')
-            shutil.copy(f'{destination_path}{folder}.txt',f'{problem_path}{folder}/{folder}.txt')
-            os.remove(f'{destination_path}{folder}.txt')
+            shutil.move(f'{pdbqt_files_path}{folder}', f'{problem_path}{folder}')
+            #shutil.copy(f'{destination_path}{folder}.txt',f'{problem_path}{folder}/{folder}.txt')
+            #os.remove(f'{destination_path}{folder}.txt')
             pbar.update(1)
 
 
