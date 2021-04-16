@@ -12,6 +12,7 @@ from tqdm import tqdm
 import pandas as pd
 import shutil
 import sys
+import regex as re
 
 
 def get_stats_from_file(filepath): # gets Mw and number of rotatable bonds from ligand file
@@ -25,9 +26,13 @@ def get_stats_from_file(filepath): # gets Mw and number of rotatable bonds from 
     # load the molecule and get stats
     mol = next(oddt.toolkits.ob.readfile(file_format, filepath))
     mw = mol.molwt
-    num_rotors = mol.num_rotors
 
-    return mw, num_rotors
+    with open(filepath, 'r') as pdbqt_text:
+        full_string = pdbqt_text.read()
+
+    active_stated = re.search('(?<=REMARK  )(.*)(?= active torsions)', full_string)[0]
+
+    return mw, int(active_stated)
 
 def druglike_filter(mw, num_rotors, mw_thresh, num_rotors_thresh): # return True if ligand is druglike else False
 
