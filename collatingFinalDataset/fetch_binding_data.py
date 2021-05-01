@@ -254,7 +254,7 @@ def main(): # run script using CLI
     df, removed = ic50_check(df, threshold)
 
     # add classification label to binding data based on user threshold
-    df['Label'] = np.where(df['Binding_Data_in_uM'] < threshold, 1, 0)
+    df['Label'] = np.where(df['Binding_Data_in_uM'] <= threshold, 1, 0)
 
     # save useful binding data with kd label
     df.pop('index')
@@ -281,6 +281,9 @@ def main(): # run script using CLI
                 for structure in list(df['PDBCode']):
                     shutil.copytree(f'{pdbqt_files_path}{structure}', f'{pdbqt_files_path[:len(pdbqt_files_path) - 1]}_filtered_binding_data/{structure}')
                     pbar.update(1)
+
+    print('Class summary:')
+    print(df['Label'].value_counts(dropna=False))
 
 if __name__ == '__main__':
     main()
