@@ -15,6 +15,7 @@ import sys
 from warnings import filterwarnings
 from tqdm import tqdm
 from itertools import chain as iterchain
+filterwarnings('ignore')
 
 class ligand_selector(Select): # selector class for BioPython which saves all residues in supplied 'keep_ligand_residues' list
 
@@ -31,6 +32,22 @@ class pocket_selector(Select): # selector class for BioPython which saves all re
 
     def accept_residue(self, residue): # accept residues if unique identifier present in 'pocket_residues' list
         return True if (str(residue.id[1]) + residue.get_parent().id) in self.pocket_residues else False
+
+def add_aromaticity_information(ligand_pdb_file): # encodes aromaticity into the pdb ligand file using openbabel conversion to mol2
+
+    # set variables for file
+    path_without_filetype = ligand_pdb_file.split('.')[0]
+
+    # save as mol2 file
+    pdb_mol = next(oddt.toolkits.ob.readfile('pdb', ligand_pdb_file))
+    pdb_mol.write('mol2', f"{path_without_filetype}.mol2", overwrite=True)
+
+    # make new pdb copy of mol2 file with aromaticity information
+    new_pdb_mol = next(oddt.toolkits.ob.readfile('mol2', f"{path_without_filetype}.mol2"))
+    new_pdb_mol.write('pdb', ligand_pdb_file, overwrite=True)
+
+    # remove temporary mol2 file
+    os.remove(f"{path_without_filetype}.mol2")
 
 def define_pocket(structure, chain_residue, cutoff_thresh): # calculate cuboid coordinates around ligand with padding of user defined 'cutoff_thresh' angstroms
 
@@ -231,6 +248,7 @@ def isolate_pocket_and_ligand(filename, success_destination_path, problem_destin
         io.save(f'{success_destination_path}{pdb_code}/{pdb_code}_receptor.pdb', pocket_selector(pocket_residues))
         io.save(f'{success_destination_path}{pdb_code}/{pdb_code}_ligand.pdb', ligand_selector(keep_ligand_residues))
         io.save(f'{success_destination_path}{pdb_code}/{pdb_code}.pdb')
+        add_aromaticity_information(f'{success_destination_path}{pdb_code}/{pdb_code}_ligand.pdb')
         print('Saved files!')
 
     # otherwise make copy of original pdb structure for manual verification
