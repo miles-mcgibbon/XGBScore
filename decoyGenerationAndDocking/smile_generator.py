@@ -124,7 +124,7 @@ def main(): # run script using CLI
         split_smiles = [smiles[i:i + split_files] for i in range(0, len(smiles), split_files)]
         smile_markers = [f'{i}-{i+split_files}' for i in range(0, len(smiles), split_files)]
         for smile_list, marker in zip(split_smiles, smile_markers):
-            outfile = open(f"p_actives_{marker}.smi", "w+")
+            outfile = open(f"p_smis/p_actives_{marker}.smi", "w+")
             outfile.write("\n".join(str(i) for i in smile_list))
             outfile.close()
 
@@ -137,10 +137,11 @@ def main(): # run script using CLI
         smiles = list(actives_dict.values())
         print(len(smiles))
         split_files = int(len(smiles)/split_files)
+        print(split_files)
         split_smiles = [smiles[i:i + split_files] for i in range(0, len(smiles), split_files)]
         smile_markers = [f'{i}-{i+split_files}' for i in range(0, len(smiles), split_files)]
         for smile_list, marker in zip(split_smiles, smile_markers):
-            outfile = open(f"np_actives_{marker}.smi", "w+")
+            outfile = open(f"np_smis/np_actives_{marker}.smi", "w+")
             outfile.write("\n".join(str(i) for i in smile_list))
             outfile.close()
 
