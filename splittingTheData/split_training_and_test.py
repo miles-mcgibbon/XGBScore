@@ -86,8 +86,8 @@ def main(): # run script using CLI
     print(f'Combined Length: {len(full_test_df) + len(full_training_df)}')
 
     # save training and test sets
-    #full_training_df.to_hdf(f"{output_dir}full_training_df.h5",key="df",mode="w")
-    #full_test_df.to_hdf(f"{output_dir}full_test_df.h5",key="df",mode="w")
+    full_training_df.to_hdf(f"{output_dir}raw_full_training_df.h5",key="df",mode="w")
+    full_test_df.to_hdf(f"{output_dir}raw_full_test_df.h5",key="df",mode="w")
 
 if __name__ == "__main__":
     main()
