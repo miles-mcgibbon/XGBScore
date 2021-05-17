@@ -5,7 +5,6 @@
 *Gif sourced from https://azevedolab.net/*
 
 This project aims to use gradient boosted decision trees for binary classification of protein-ligand Kd (over or under 25µM). The model uses XGBoost and scikit-learn, and was trained on active data from the following databases:
-- Binding MOAD
 - PDBBind
 - Iridium
 
